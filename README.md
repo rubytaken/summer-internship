@@ -1,6 +1,6 @@
 # AI Charts - Technical Requirements Document
 
-_Version 1.0 | June 2025_
+_Version 1.0 | July 2025_
 
 ## 🎯 Product Overview
 
