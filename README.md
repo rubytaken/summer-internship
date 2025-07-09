@@ -247,14 +247,14 @@ async function getSuggestions(canvasData: any): Promise<string[]>;
 
 ## 📋 Development Tasks
 
-### Phase 1: Core Infrastructure (4 weeks)
+### Phase 1: Core Infrastructure
 
 - [ ] Next.js setup with TypeScript and Tailwind
 - [ ] Supabase PostgreSQL setup and schema implementation
 - [ ] Authentication system
 - [ ] Basic routing and layout components
 
-### Phase 2: Canvas & Drawing (4 weeks)
+### Phase 2: Canvas & Drawing
 
 - [ ] Fabric.js integration
 - [ ] Shape creation and manipulation
@@ -262,7 +262,7 @@ async function getSuggestions(canvasData: any): Promise<string[]>;
 - [ ] Save/load functionality
 - [ ] Export to PNG/PDF/SVG
 
-### Phase 3: AI Integration (4 weeks)
+### Phase 3: AI Integration
 
 - [ ] Gemini API integration
 - [ ] Text-to-diagram conversion
@@ -270,14 +270,14 @@ async function getSuggestions(canvasData: any): Promise<string[]>;
 - [ ] AI suggestion system
 - [ ] Error handling and validation
 
-### Phase 4: Collaboration (3 weeks)
+### Phase 4: Collaboration
 
 - [ ] Real-time editing with WebSockets
 - [ ] User presence indicators
 - [ ] Project sharing
 - [ ] Version history
 
-### Phase 5: Polish & Deploy (1 week)
+### Phase 5: Polish & Deploy
 
 - [ ] Performance optimization
 - [ ] Error handling
