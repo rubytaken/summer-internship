@@ -1,13 +1,14 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { calculateShapeSize, normalizeShapeSizes } from '@/lib/canvas/textUtils';
 
-const API_KEY = process.env.GEMINI_API_KEY || '';
-
-if (!API_KEY) {
-  throw new Error('Gemini API key is not configured. Please set GEMINI_API_KEY in your environment variables.');
+// Server-side only service - API key should be available in server environment
+function getGoogleAI() {
+  const API_KEY = process.env.GEMINI_API_KEY;
+  if (!API_KEY) {
+    throw new Error('Gemini API key is not configured. Please set GEMINI_API_KEY in your environment variables.');
+  }
+  return new GoogleGenerativeAI(API_KEY);
 }
-
-const genAI = new GoogleGenerativeAI(API_KEY);
 
 export interface DiagramNode {
   id: string;
@@ -44,13 +45,18 @@ export interface DiagramGenerationRequest {
 }
 
 export class GeminiAIService {
-  private models = [
-    genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }),      // Stable primary
-    genAI.getGenerativeModel({ model: 'gemini-1.5-pro' }),       // Stable fallback
-    genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })  // Experimental last resort
-  ];
-  
+  private genAI: GoogleGenerativeAI;
+  private models: any[];
   private currentModelIndex = 0;
+
+  constructor() {
+    this.genAI = getGoogleAI();
+    this.models = [
+      this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }),      // Stable primary
+      this.genAI.getGenerativeModel({ model: 'gemini-1.5-pro' }),       // Stable fallback
+      this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })  // Experimental last resort
+    ];
+  }
 
   async generateDiagram(request: DiagramGenerationRequest): Promise<DiagramGenerationResponse> {
     const prompt = this.buildPrompt(request);
@@ -434,4 +440,4 @@ Keep it under 500 words.`;
   }
 }
 
-export const aiService = new GeminiAIService(); 
+// Server-side service - use clientAIService for client-side operations 

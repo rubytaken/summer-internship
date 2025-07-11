@@ -14,7 +14,8 @@ import {
 } from 'lucide-react';
 import * as fabric from 'fabric';
 import { useDiagramStore } from '@/stores/diagramStore';
-import { aiService, DiagramGenerationRequest } from '@/lib/ai/gemini';
+import { clientAIService } from '@/lib/ai/client';
+import { DiagramGenerationRequest } from '@/lib/ai/gemini';
 
 interface SidebarProps {
   selectedTool: string;
@@ -71,7 +72,7 @@ export default function Sidebar({ selectedTool, onToolSelect }: SidebarProps) {
       };
 
       console.log('🤖 Generating diagram with text-aware sizing...');
-      const response = await aiService.generateDiagram(request);
+      const response = await clientAIService.generateDiagram(request);
       
               // Use the new Canvas rendering function with text-aware sizing
         const windowWithCanvas = window as typeof window & { canvasRenderAIDiagram?: (nodes: any, connections: any) => void };
