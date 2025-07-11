@@ -256,7 +256,7 @@ export class GeminiAIService {
   private buildPrompt(request: DiagramGenerationRequest): string {
     const { prompt, diagramType, style = 'simple', maxNodes = 10 } = request;
     
-    const basePrompt = `You are an expert diagram generator. Create a ${diagramType} based on this description: "${prompt}"
+    const basePrompt = `You are an expert diagram generator.Do not compress yourself in terms of space, always create legible diagrams or flowcharts. do not show data on top of each other, everything should be neat and legible and pleasing to the eye. Create a ${diagramType} based on this description: "${prompt}"
 
 Generate a diagram with ${style} style and maximum ${maxNodes} nodes.
 
