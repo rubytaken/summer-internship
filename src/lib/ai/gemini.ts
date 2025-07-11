@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { calculateShapeSize, normalizeShapeSizes } from '@/lib/canvas/textUtils';
 
-const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || 'AIzaSyDS7KfUpgJCh_VwXVkPBirMXwYZRpsaiyU';
+const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
 
 if (!API_KEY) {
   throw new Error('Gemini API key is not configured. Please set NEXT_PUBLIC_GEMINI_API_KEY in your environment variables.');
