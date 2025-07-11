@@ -8,6 +8,54 @@ export interface TextMetrics {
   lines: string[];
 }
 
+/**
+ * Server-side fallback for text dimension estimation
+ */
+function estimateTextDimensions(
+  text: string,
+  fontSize: number = 14,
+  maxWidth?: number
+): TextMetrics {
+  // Rough character width estimation based on font size
+  const avgCharWidth = fontSize * 0.6; // Average character width
+  const lineHeight = fontSize * 1.2; // Standard line height
+  
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+  
+  if (maxWidth) {
+    // Simple word wrapping based on estimated character width
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const estimatedWidth = testLine.length * avgCharWidth;
+      
+      if (estimatedWidth > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+  } else {
+    lines.push(text);
+  }
+  
+  // Calculate dimensions based on longest line
+  const maxLineLength = Math.max(...lines.map(line => line.length));
+  const width = maxLineLength * avgCharWidth;
+  const height = lines.length * lineHeight;
+  
+  return {
+    width: Math.ceil(width),
+    height: Math.ceil(height),
+    lines
+  };
+}
+
 export interface ShapeSize {
   width: number;
   height: number;
@@ -24,12 +72,18 @@ export function measureText(
   fontWeight: string = '500',
   maxWidth?: number
 ): TextMetrics {
+  // Check if we're in a browser environment
+  if (typeof document === 'undefined') {
+    // Server-side fallback: estimate text dimensions
+    return estimateTextDimensions(text, fontSize, maxWidth);
+  }
+
   // Create a temporary canvas for text measurement
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   
   if (!ctx) {
-    return { width: 100, height: 20, lines: [text] };
+    return estimateTextDimensions(text, fontSize, maxWidth);
   }
 
   // Set font properties
