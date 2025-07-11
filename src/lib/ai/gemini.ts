@@ -52,9 +52,9 @@ export class GeminiAIService {
   constructor() {
     this.genAI = getGoogleAI();
     this.models = [
-      this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }),      // Stable primary
-      this.genAI.getGenerativeModel({ model: 'gemini-1.5-pro' }),       // Stable fallback
-      this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })  // Experimental last resort
+      this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' }),     // Latest and best
+      this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' }),     // Reliable backup
+      this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })      // Fallback
     ];
   }
 
@@ -64,8 +64,8 @@ export class GeminiAIService {
     // Retry logic with multiple models
     for (let attempt = 0; attempt < 3; attempt++) {
       for (let modelIndex = 0; modelIndex < this.models.length; modelIndex++) {
-        let modelName = modelIndex === 0 ? 'gemini-1.5-flash' : 
-                       modelIndex === 1 ? 'gemini-1.5-pro' : 'gemini-2.0-flash-exp';
+        let modelName = modelIndex === 0 ? 'gemini-2.5-flash' : 
+                       modelIndex === 1 ? 'gemini-2.0-flash' : 'gemini-1.5-flash';
         try {
           const currentModel = this.models[modelIndex];
           
@@ -106,11 +106,18 @@ export class GeminiAIService {
               throw error; // Don't retry on auth/billing issues
             }
             
-            // For 503 (overloaded), 429 (rate limit), continue to next model
-            if (error.message.includes('503') || 
-                error.message.includes('overloaded') ||
-                error.message.includes('429') ||
+            // For quota exceeded (429), wait longer before next attempt
+            if (error.message.includes('429') || 
+                error.message.includes('quota') ||
                 error.message.includes('rate limit')) {
+              console.log(`⏳ ${modelName} quota exceeded, waiting before next model...`);
+              await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+              continue; // Try next model
+            }
+            
+            // For 503 (overloaded), continue to next model quickly
+            if (error.message.includes('503') || 
+                error.message.includes('overloaded')) {
               console.log(`🔄 ${modelName} overloaded, trying next model...`);
               continue; // Try next model
             }
@@ -121,16 +128,16 @@ export class GeminiAIService {
         }
       }
       
-      // Wait before next attempt
+      // Wait before next attempt with longer delays for quota issues
       if (attempt < 2) {
-        const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
+        const delay = Math.pow(3, attempt + 1) * 2000; // Longer exponential backoff (6s, 18s)
         console.log(`⏳ Waiting ${delay}ms before next attempt...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
     
     // All attempts failed
-    throw new Error('All Gemini models failed. The service may be temporarily unavailable. Please try again in a few minutes.');
+    throw new Error('Gemini API quota exceeded or service unavailable. Please check your API key limits in Google AI Studio and try again in a few minutes. If you continue having issues, consider upgrading your API plan.');
   }
 
   private validateAndProcessResponse(response: any): DiagramGenerationResponse {
