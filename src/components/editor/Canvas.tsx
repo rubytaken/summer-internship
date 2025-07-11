@@ -52,9 +52,33 @@ export default function Canvas({ selectedTool, onShapeSelect }: CanvasProps) {
                obj.stroke !== '#CBD5E1';
       });
       
-      // Save only user objects
+      // Save only user objects with all necessary properties
       const saveData = {
-        objects: userObjects.map(obj => obj.toObject())
+        objects: userObjects.map(obj => {
+          // Get base object data
+          const objData = obj.toObject(['id', 'selectable', 'evented', 'hasControls', 'hasBorders']);
+          
+          // Add text-specific properties if it's a text object
+          if (obj.type === 'text' || obj.type === 'textbox' || obj.type === 'i-text') {
+            const textObj = obj as fabric.Text | fabric.Textbox;
+            objData.text = textObj.text;
+            objData.fontSize = textObj.fontSize;
+            objData.fontFamily = textObj.fontFamily;
+            objData.fontWeight = textObj.fontWeight;
+            objData.textAlign = textObj.textAlign;
+            objData.lineHeight = textObj.lineHeight;
+            objData.charSpacing = textObj.charSpacing;
+            
+            // For Textbox specifically
+            if (obj.type === 'textbox') {
+              const textboxObj = obj as fabric.Textbox;
+              objData.width = textboxObj.width;
+              objData.splitByGrapheme = textboxObj.splitByGrapheme;
+            }
+          }
+          
+          return objData;
+        })
       };
       
       localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
@@ -83,17 +107,84 @@ export default function Canvas({ selectedTool, onShapeSelect }: CanvasProps) {
       
       // Restore user objects
       if (parsedState.objects && Array.isArray(parsedState.objects)) {
-        parsedState.objects.forEach((objData: any) => {
-          fabric.util.enlivenObjects([objData]).then((objects: any[]) => {
-            if (objects[0]) {
-              canvas.add(objects[0]);
-              canvas.renderAll();
+        parsedState.objects.forEach(async (objData: any) => {
+          try {
+            // Handle text objects specially
+            if (objData.type === 'text' || objData.type === 'textbox' || objData.type === 'i-text') {
+              let textObj: fabric.Text | fabric.Textbox;
+              
+              if (objData.type === 'textbox') {
+                textObj = new fabric.Textbox(objData.text || '', {
+                  left: objData.left,
+                  top: objData.top,
+                  width: objData.width,
+                  height: objData.height,
+                  fontSize: objData.fontSize || 16,
+                  fontFamily: objData.fontFamily || 'Inter, sans-serif',
+                  fontWeight: objData.fontWeight || 'normal',
+                  fill: objData.fill || '#000000',
+                  textAlign: objData.textAlign || 'left',
+                  angle: objData.angle || 0,
+                  scaleX: objData.scaleX || 1,
+                  scaleY: objData.scaleY || 1,
+                  flipX: objData.flipX || false,
+                  flipY: objData.flipY || false,
+                  opacity: objData.opacity || 1,
+                  selectable: objData.selectable !== false,
+                  evented: objData.evented !== false,
+                  visible: objData.visible !== false,
+                  backgroundColor: objData.backgroundColor,
+                  lineHeight: objData.lineHeight || 1.16,
+                  charSpacing: objData.charSpacing || 0,
+                  splitByGrapheme: objData.splitByGrapheme,
+                });
+              } else {
+                textObj = new fabric.Text(objData.text || '', {
+                  left: objData.left,
+                  top: objData.top,
+                  fontSize: objData.fontSize || 16,
+                  fontFamily: objData.fontFamily || 'Inter, sans-serif',
+                  fontWeight: objData.fontWeight || 'normal',
+                  fill: objData.fill || '#000000',
+                  textAlign: objData.textAlign || 'left',
+                  angle: objData.angle || 0,
+                  scaleX: objData.scaleX || 1,
+                  scaleY: objData.scaleY || 1,
+                  flipX: objData.flipX || false,
+                  flipY: objData.flipY || false,
+                  opacity: objData.opacity || 1,
+                  selectable: objData.selectable !== false,
+                  evented: objData.evented !== false,
+                  visible: objData.visible !== false,
+                  backgroundColor: objData.backgroundColor,
+                  lineHeight: objData.lineHeight || 1.16,
+                  charSpacing: objData.charSpacing || 0,
+                  originX: objData.originX || 'left',
+                  originY: objData.originY || 'top',
+                });
+              }
+              
+              canvas.add(textObj);
+            } else {
+              // For non-text objects, use the standard enliven method
+              fabric.util.enlivenObjects([objData]).then((objects: any[]) => {
+                if (objects[0]) {
+                  canvas.add(objects[0]);
+                }
+              }).catch((error) => {
+                console.error('Failed to restore object:', error, objData);
+              });
             }
-          }).catch((error) => {
-            console.error('Failed to restore object:', error);
-          });
+          } catch (error) {
+            console.error('Failed to restore object:', error, objData);
+          }
         });
-        console.log('✅ Canvas state loaded from localStorage');
+        
+        // Render after all objects are loaded
+        setTimeout(() => {
+          canvas.renderAll();
+          console.log('✅ Canvas state loaded from localStorage');
+        }, 100);
       }
     } catch (error) {
       console.error('Failed to load canvas state:', error);
@@ -217,7 +308,7 @@ export default function Canvas({ selectedTool, onShapeSelect }: CanvasProps) {
       originY: 'center',
     });
 
-    const elements = [line, arrowHead];
+    const elements: fabric.FabricObject[] = [line, arrowHead];
 
     // Add label if provided
     if (label) {
@@ -250,7 +341,7 @@ export default function Canvas({ selectedTool, onShapeSelect }: CanvasProps) {
         evented: false,
       });
 
-      elements.push(labelBg, labelText);
+      elements.push(labelBg as fabric.FabricObject, labelText as fabric.FabricObject);
     }
 
     return elements;
@@ -965,10 +1056,10 @@ export default function Canvas({ selectedTool, onShapeSelect }: CanvasProps) {
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
 
-    const handleMouseDown = (e: fabric.TPointerEvent) => {
+    const handleMouseDown = (opt: fabric.TPointerEventInfo<fabric.TPointerEvent>) => {
       if (selectedTool === 'select' || selectedTool === 'hand') return;
 
-      const pointer = canvas.getPointer(e.e);
+      const pointer = canvas.getPointer(opt.e);
       let shape: fabric.FabricObject | null = null;
 
       switch (selectedTool) {
