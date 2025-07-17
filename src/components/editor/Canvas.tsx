@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as fabric from 'fabric';
 import { useDiagramStore } from '@/stores/diagramStore';
 import { calculateShapeSize, getTextPosition } from '@/lib/canvas/textUtils';
+import { PromptInput } from '@/components/ui/ai-chat-input';
+import { clientAIService } from '@/lib/ai/client';
+import { DiagramGenerationRequest } from '@/lib/ai/gemini';
 
 // Import AI types
 interface DiagramNode {
@@ -37,6 +40,7 @@ export default function Canvas({ selectedTool, onShapeSelect }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
   const { setCanvas } = useDiagramStore();
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Helper function to save canvas state to localStorage
   const saveCanvasState = (canvas: fabric.Canvas) => {
@@ -603,6 +607,35 @@ export default function Canvas({ selectedTool, onShapeSelect }: CanvasProps) {
     console.log('✨ Modern diagram rendered successfully with optimal text sizing!');
   };
 
+  // Handle AI diagram generation
+  const handleAIGenerate = async (prompt: string) => {
+    const canvas = fabricCanvasRef.current;
+    if (!prompt.trim() || !canvas) return;
+
+    setIsGenerating(true);
+    try {
+      const request: DiagramGenerationRequest = {
+        prompt: prompt,
+        diagramType: 'flowchart',
+        style: 'detailed',
+        maxNodes: 8,
+      };
+
+      console.log('🤖 Generating diagram with text-aware sizing...');
+      const response = await clientAIService.generateDiagram(request);
+      
+      // Use the renderAIDiagram function
+      renderAIDiagram(response.nodes, response.connections);
+      console.log('✨ AI diagram rendered with optimal text sizing!');
+      
+    } catch (error) {
+      console.error('AI Generation failed:', error);
+      alert('Failed to generate diagram. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   // Initialize canvas with larger size - only on mount
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -1116,12 +1149,33 @@ export default function Canvas({ selectedTool, onShapeSelect }: CanvasProps) {
   }, [selectedTool]);
 
   return (
-    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4">
-      <div className="border border-gray-200 bg-white shadow-xl rounded-lg overflow-hidden">
-        <canvas 
-          ref={canvasRef}
-          style={{ display: 'block' }}
-        />
+    <div className="w-full h-full relative bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Canvas Area - Full Screen */}
+      <div className="w-full h-full flex items-center justify-center p-4">
+        <div className="border border-gray-200 bg-white shadow-xl rounded-lg overflow-hidden">
+          <canvas 
+            ref={canvasRef}
+            style={{ display: 'block' }}
+          />
+        </div>
+      </div>
+      
+      {/* Floating AI Input - Positioned over Canvas */}
+      <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-2xl px-4">
+        <div className="bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/50 p-4">
+          <PromptInput
+            placeholder="Describe your diagram... (e.g., 'Create a login process flowchart')"
+            onSubmit={handleAIGenerate}
+            disabled={isGenerating}
+            className="border-purple-200 focus-within:border-purple-400 focus-within:ring-purple-400 shadow-none"
+          />
+          {isGenerating && (
+            <div className="flex items-center justify-center mt-3 pt-2 border-t border-gray-100">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+              <span className="ml-2 text-sm text-gray-600 font-medium">Creating diagram...</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

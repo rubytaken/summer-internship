@@ -32,7 +32,7 @@ export default function DiagramEditor() {
           />
         </div>
         
-        {/* Canvas Area */}
+        {/* Canvas Area - relative positioning for floating AI input */}
         <div className="flex-1 relative bg-gray-50">
           <Canvas 
             selectedTool={selectedTool}
