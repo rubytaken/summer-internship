@@ -13,8 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Charts",
-  description: "AI Charts",
+  title: "AI Charts - Smart Diagram and Chart Creator",
+  description:
+    "Create professional diagrams, flowcharts, and charts with AI-powered tools. Intuitive interface and powerful features.",
 };
 
 export default function RootLayout({
