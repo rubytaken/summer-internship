@@ -1,10 +1,32 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req, res })
+  
+  // Get the token from cookies
+  const token = req.cookies.get('sb-access-token')?.value
+  
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        storage: {
+          getItem: (key: string) => {
+            return req.cookies.get(key)?.value
+          },
+          setItem: (key: string, value: string) => {
+            res.cookies.set(key, value)
+          },
+          removeItem: (key: string) => {
+            res.cookies.delete(key)
+          },
+        },
+      },
+    }
+  )
 
   const {
     data: { session },

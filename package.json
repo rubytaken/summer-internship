@@ -12,7 +12,6 @@
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.1.1",
     "@radix-ui/react-slot": "^1.2.3",
-    "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.50.3",
     "@types/fabric": "^5.3.10",
     "class-variance-authority": "^0.7.1",
