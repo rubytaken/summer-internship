@@ -19,11 +19,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Get initial session
+    let isMounted = true
+    
+    // Get initial session with timeout
     const getInitialSession = async () => {
-      const { data: { session } } = await supabaseClient.auth.getSession()
-      setUser(session?.user ?? null)
-      setLoading(false)
+      try {
+        console.log('AuthProvider: Getting initial session...')
+        
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session timeout')), 5000)
+        )
+        
+        const sessionPromise = supabaseClient.auth.getSession()
+        
+        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any
+        
+        if (isMounted) {
+          setUser(session?.user ?? null)
+          setLoading(false)
+          console.log('AuthProvider: Session loaded successfully')
+        }
+      } catch (error) {
+        console.error('AuthProvider: Session loading failed:', error)
+        if (isMounted) {
+          setUser(null)
+          setLoading(false)
+        }
+      }
     }
 
     getInitialSession()
@@ -32,39 +55,75 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabaseClient.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
+      console.log('AuthProvider: Auth state changed:', event)
+      if (isMounted) {
+        setUser(session?.user ?? null)
+        setLoading(false)
+      }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signIn = async (email: string, password: string) => {
+    try {
+      console.log('AuthProvider: Attempting sign in...')
+      
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Sign in timeout')), 10000)
+      )
+      
+      const signInPromise = supabaseClient.auth.signInWithPassword({
+        email,
+        password,
+      })
+      
+      const { error } = await Promise.race([signInPromise, timeoutPromise]) as any
 
-    const { error } = await supabaseClient.auth.signInWithPassword({
-      email,
-      password,
-    })
+      if (error) {
+        console.error('AuthProvider: Sign in error:', error.message)
+        return { error: error.message }
+      }
 
-    if (error) {
-      return { error: error.message }
+      console.log('AuthProvider: Sign in successful')
+      return {}
+    } catch (error) {
+      console.error('AuthProvider: Sign in failed:', error)
+      return { error: error instanceof Error ? error.message : 'Sign in failed' }
     }
-
-    return {}
   }
 
   const signUp = async (email: string, password: string) => {
+    try {
+      console.log('AuthProvider: Attempting sign up...')
+      
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Sign up timeout')), 10000)
+      )
+      
+      const signUpPromise = supabaseClient.auth.signUp({
+        email,
+        password,
+      })
+      
+      const { error } = await Promise.race([signUpPromise, timeoutPromise]) as any
 
-    const { error } = await supabaseClient.auth.signUp({
-      email,
-      password,
-    })
+      if (error) {
+        console.error('AuthProvider: Sign up error:', error.message)
+        return { error: error.message }
+      }
 
-    if (error) {
-      return { error: error.message }
+      console.log('AuthProvider: Sign up successful')
+      return {}
+    } catch (error) {
+      console.error('AuthProvider: Sign up failed:', error)
+      return { error: error instanceof Error ? error.message : 'Sign up failed' }
     }
-
-    return {}
   }
 
   const signOut = async () => {
